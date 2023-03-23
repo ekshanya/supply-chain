@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Provenance Dapp</title>
+    <meta content="text/html; charset=utf-8" />
+</head>
+<body>
+	<h1>Provenance Dapp</h1>
+	<form id="provenanceForm">
+		<label for="companyName">Company Name:</label>
+		<input type="text" id="companyName" name="companyName"><br><br>
+        <label for="productImage">Product Image:</label>
+		<input type="file" id="productImage" name="productImage"><br><br>
+		<button type="button" onclick="submitProvenance()">Submit</button>
+	</form>
+	<script src="https://cdn.jsdelivr.net/npm/web3@1.6/dist/web3.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/gh/algorand/web3.js@1.6.0/dist/web3.min.js"></script>
+	<script>
+		async function submitProvenance() {
+			const provider = new Web3.providers.HttpProvider("https://testnet-algorand.api.purestake.io/ps2/v2/status", {
+				headers: {
+					'X-API-Key': 'Sq7UC7frimaLx8xBrIydj82PitGi3IJv7dqTlRiZ'
+				},
+				timeout: 20000
+			});
+
+			const web3 = new Web3(provider);
+			console.log("web3"+web3)
+
+			// Get the account from the private key
+			const privateKey = "RHMAJM4C2RMWYLYYDYA45TTKBGSYWPSCGBM7DCZEQ64M7CEMR3QT46DJ3E";
+			const account = web3.eth.accounts.privateKeyToAccount(privateKey);
+            console.log(privateKey)
+			// Set the account as the default account for sending transactions
+			web3.eth.accounts.wallet.add(account);
+			web3.eth.defaultAccount = account.address;
+
+			// Get the contract instance
+			const contractAddress = "0xd9145CCE52D386f254917e481eB44e9943F39138";
+			const abi = [
+				{
+					"constant": false,
+					"inputs": [
+						{
+							"name": "_name",
+							"type": "string"
+						},
+						{
+							"name": "_phoneNo",
+							"type": "uint256"
+						},
+						{
+							"name": "_cityState",
+							"type": "string"
+						},
+						{
+							"name": "_country",
+							"type": "string"
+						}
+					],
+					"name": "addProducer",
+					"outputs": [
+						{
+							"name": "success",
+							"type": "bool"
+						}
+					],
+					"payable": false,
+					"stateMutability": "nonpayable",
+					"type": "function"
+				},
+				{
+					"constant": false,
+					"inputs": [
+						{
+							"name": "serialNo",
+							"type": "string"
+						},
+						{
+							"name": "_locationData",
+							"type": "uint256[]"
+						}
+					],
+					"name": "addProduct",
+					"outputs": [
+						{
+							"name": "success",
+							"type": "bool"
+						}
+					],
+					"payable": false,
+					"stateMutability": "nonpayable",
+					"type": "function"
+				},
+				{
+					"constant": false,
+					"inputs": [
+						{
+							"name": "_producer",
+							"type": "address"
+						}
+					],
+					"name": "certifyProducer",
+					"outputs": [
+						{
+							"name": "success",
+							"type": "bool"
+						}
+					],
+					"payable": false,
+					"stateMutability": "nonpayable",
+					"type": "function"
+				},
+				{
+					"constant": false,
+					"inputs": [
+						{
+							"name": "_producer",
+							"type": "address"
+						}
+					],
+					"name": "removeProducer",
+					"outputs": [
+						{
+							"name": "success",
+							"type": "bool"
+						}
+					],
+					"payable": false,
+					"stateMutability": "nonpayable",
+					"type": "function"
+				},
+				{
+					"constant": false,
+					"inputs": [
+						{
+							"name": "serialNo",
+							"type": "string"
+						}
+					],
+					"name": "removeProduct",
+					"outputs": [
+						{
+							"name": "success",
+							"type": "bool"
+						}
+					],
+					"payable": false,
+					"stateMutability": "nonpayable",
+					"type": "function"
+				},
+				{
+					"inputs": [],
+					"payable": false,
+					"stateMutability": "nonpayable",
+					"type": "constructor"
+				},
+				{
+					"constant": true,
+					"inputs": [
+						{
+							"name": "_producer",
+							"type": "address"
+						}
+					],
+					"name": "findProducer",
+					"outputs": [
+						{
+							"name": "",
+							"type": "string"
+						},
+						{
+							"name": "",
+							"type": "uint256"
+						},
+						{
+							"name": "",
+							"type": "string"
+						},
+						{
+							"name": "",
+							"type": "string"
+						},
+						{
+							"name": "",
+							"type": "bool"
+						}
+					],
+					"payable": false,
+					"stateMutability": "view",
+					"type": "function"
+				},
+				{
+					"constant": true,
+					"inputs": [
+						{
+							"name": "serialNo",
+							"type": "string"
+						}
+					],
+					"name": "findProduct",
+					"outputs": [
+						{
+							"name": "",
+							"type": "address"
+						},
+						{
+							"name": "",
+							"type": "uint256[]"
+						},
+						{
+							"name": "",
+							"type": "uint256"
+						}
+					],
+					"payable": false,
+					"stateMutability": "view",
+					"type": "function"
+				}
+			];
+			const contract = new web3.eth.Contract(abi, contractAddress);
+
+			// Get the input values
+			const companyName = document.getElementById("companyName").value;
+			const productImage = document.getElementById("productImage").files[0];
+
+			// Create a new file reader
+			const reader = new FileReader();
+
+			// When the file is read, convert it to a base64 string and call the submitTransaction function
+			reader.onload = async function() {
+				const base64Image = reader.result.split(',')[1];
+				await submitTransaction(companyName, base64Image);
+			};
+
+			// Read the file as a data URL
+			reader.readAsDataURL(productImage);
+
+			// Submit the transaction to the blockchain
+			async function submitTransaction(companyName, base64Image) {
+				// Convert the base64 image to bytes
+				const bytesImage = web3.utils.hexToBytes(web3.utils.toHex(base64Image));
+
+				// Create the transaction object
+				const txObject = contract.methods.addProvenance(companyName, bytesImage);
+
+				// Estimate the gas required for the transaction
+				const gas = await txObject.estimateGas();
+
+				// Create the raw transaction object
+				const rawTx = {
+					nonce: await web3.eth.getTransactionCount(account.address),
+					gasPrice: web3.utils.toWei('10', 'gwei'),
+					gas: gas,
+					to: contractAddress,
+					value: 0,
+					data: txObject.encodeABI()
+				};
+
+				// Sign the transaction with the private key
+				const signedTx = await web3.eth.accounts.signTransaction(rawTx, privateKey);
+
+				// Send the signed transaction to the blockchain
+				const tx = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+
+				// Output the transaction information
+				console.log(tx);
+			}
+		}
+	</script>
+</body>
+</html>
